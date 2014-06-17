@@ -6,7 +6,6 @@ var mockRes = function(expectedString, done) {
     http.ServerResponse.prototype.end = function(data) {
         tester.isEqual(data.substring(0, expectedString.length),
             expectedString);
-        console.log("assertion checked");
 
         if (done !== undefined) {
             done();
@@ -21,19 +20,12 @@ var mockRes = function(expectedString, done) {
 
 var mockFs = function() {
     this.readFile = function(path, encoding) {
-        console.log("read file");
         return "some file stuff";
     };
 }
 
 // Demo async tests
 tester.test(
-
-    'should get file extension form path', function() {
-        var result = server.getFileExtension("/client.js");
-        tester.isEqual(result, "js");
-        console.log("successass")
-    },
 
     'should serve index.html when go to "/" URL', function(done) {
         server.requestHandler({ url: "/" },
@@ -46,23 +38,33 @@ tester.test(
     },
 
     'should get day string when hour between 6 and 20 (exclusive)', function() {
-        // mock
         var Date = function() {
             this.getHours = function() {
                 return 11;
             }
-        }
+        };
 
-        result = server.getTimeOfDay();
+        result = server.getDayOrNight();
         tester.isEqual(result, "day");
     },
+    'should get night string when hour between 20 and 6 (exclusive)', function() {
+        Date = function() {
+            this.getHours = function() {
+                return 21;
+            }
+        };
 
-    'should read file with given path', function(done) {
-        server.readFile("/client.js", mockRes(";(function(exports) {\n  exports.get", done));
+        result = server.getDayOrNight();
+        tester.isEqual(result, "night");
+    },
+
+    'should get time of day json', function() {
+        Date = function() {
+            this.getHours = function() {
+                return 11;
+            }
+        };
+        server.serveTimeOfDay()(mockRes('{"time": "day"}'));
     }
 
-//  'should create json from key and value', function() {
-//        result = server.createJSON("time", "day");
-//        tester.isEqual(result, '{"time"}')
-//    }
 );
