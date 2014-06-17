@@ -4,30 +4,24 @@ var fs = require('fs');
 var DAY = "day";
 var NIGHT = "night";
 
-var contentTypes = {"js" : "application/javascript", "html" : "text/html", "json" : "application/json"};
-
-
-
-var server = {
+var server ={
     requestHandler: function (req, res) {
-        if (req.url === "/") {
-            this.readFile("/index.html", res);
-        } else if (req.url === "/client.js") {
-            this.readFile(req.url, res);
-        } else if (req.url === "/canvas-renderer.js") {
-            this.readFile(req.url, res);
-        } else if (req.url === "/time.json") {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            var timeOfDay = this.getTimeOfDay();
-            res.end(this.createJSON("time", timeOfDay));
-        }
+        routes[req.url](res);
     },
-    readFile: function(path, res) {
+    readFile: function(path) {
         var ext = this.getFileExtension(path);
         fs.readFile(__dirname + path, 'utf8', function (err, data) {
             res.writeHead(200, { 'Content-Type': contentTypes[ext] });
             res.end(data);
         });
+    },
+    getStaticFile: function(path, contentType) {
+        return function(res) {
+            fs.readFile(__dirname + path, 'utf8', function (err, data) {
+                res.writeHead(200, { 'Content-Type': contentType });
+                res.end(data);
+            });
+        }
     },
     getFileExtension: function(path) {
         console.log("path %s", path);
@@ -36,17 +30,25 @@ var server = {
         return ext;
     },
     getTimeOfDay: function() {
-        var hour = new Date().getHours();
-        console.log("###" + hour)
-        var time = hour > 6 && hour < 20 ? DAY : NIGHT;
-
-        return time;
-    },
-    createJSON: function(key, value) {
-        return '{ ' + key + ': "' + value + '" }'
+        return function(res) {
+            var hour = new Date().getHours();
+            console.log("###" + hour)
+            var time = hour > 6 && hour < 20 ? DAY : NIGHT;
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end( '{ "time": "' + time + '" }');
+        }
     }
+};
+
+var routes = {
+    "/" : server.getStaticFile("/index.html", "text/html"),
+    "/client.js" : server.getStaticFile("/client.js", "application/javascript"),
+    "/canvas-renderer.js" : server.getStaticFile("/canvas-renderer.js", "application/javascript"),
+    "/time.json" : server.getTimeOfDay(),
+    "/favicon.ico" : server.getStaticFile("/favicon.ico", "image/x-icon")
 };
 
 http.createServer(server.requestHandler).listen(4000);
 
 exports.server = server;
+
